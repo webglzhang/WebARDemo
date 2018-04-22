@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+<!-- three.js library -->
+<script src='bulid/three.js'></script>
+<script src="bulid/stats.js"></script>
+<!-- ar.js -->
+<script src="bulid/ar.js"></script>
+<script src="bulid/MTLLoader.js"></script>
+<script src="bulid/OBJLoader.js"></script>
+
+<style>
+</style>
+<body style='margin : 0px; overflow: hidden; font-family: Monospace;-webkit-transform:translate3d(0,0,0);'  ><div style='position: absolute; top: 10px; width:100%; text-align: center; z-index: 1;'>
+	 
+	<div id="Stats-output">
+	</div>
+	<a href="https://github.com/jeromeetienne/AR.js/" target="_blank">AR.js</a> - three.js camera transform
+	<br/>
+	Contact me any time at <a href='https://twitter.com/jerome_etienne' target='_blank'>@jerome_etienne</a>
+</div>
+<script>
+        var obj;
+	//fps监测
+	    var stats = initStats();
+
+	    //fps状态
+	    function initStats() {
+	        var stats = new Stats();
+	        stats.setMode(0); // 0: fps, 1: ms
+
+	        // Align top-left
+	        stats.domElement.style.position = 'absolute';
+	        stats.domElement.style.left = '0px';
+	        stats.domElement.style.top = '0px';
+
+	        document.getElementById("Stats-output").appendChild(stats.domElement);
+	        return stats;
+	    }
+
+    // init renderer
+    var renderer	= new THREE.WebGLRenderer({
+        antialias: true,                                	//开启抗锯齿
+        alpha: true                                      	//开启背景透明
+    });
+    renderer.setClearColor(new THREE.Color('lightgrey'), 0);
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.top = '0px';
+    renderer.domElement.style.left = '0px';
+    document.body.appendChild(renderer.domElement);
+
+    // array of functions for the rendering loop 呈现循环的函数数组
+    var onRenderFcts= [];
+
+    // 初始化场景和摄像机
+    var scene	= new THREE.Scene();
+    var light = new THREE.DirectionalLight(0xffffff,1.0);
+
+    //位置不同，方向光作用于物体的面也不同，看到的物体各个面的颜色也不同
+    //light.position.set(0,1,0.5 ).normalize();
+	light.position.set(0,30,40);
+    light.castShadow = true; // 启用阴影选项
+    scene.add(light);
+
+    //环境光设置
+    var ambilight = new THREE.AmbientLight(0xffffff,0.2);
+    scene.add(ambilight);
+
+    // 初始化摄像机位置(0，0，0)
+     camera=new THREE.Camera();
+    scene.add(camera);
+
+    // handle arToolkitSource
+    var arToolkitSource = new THREEx.ArToolkitSource({})
+    arToolkitSource.init(function onReady(){
+        onResize()
+    })
+
+    // handle resize
+    window.addEventListener('resize', function(){
+        onResize()
+    })
+    function onResize(){
+        arToolkitSource.onResize()
+        arToolkitSource.copySizeTo(renderer.domElement)
+        if( arToolkitContext.arController !== null ){
+            arToolkitSource.copySizeTo(arToolkitContext.arController.canvas)
+        }
+    }
+
+
+    //initialize arToolkitContext
+
+    // create atToolkitContext
+    var arToolkitContext = new THREEx.ArToolkitContext({
+        cameraParametersUrl:  'data/camera_para.dat',
+        detectionMode: 'mono',
+    })
+
+    // initialize it
+    arToolkitContext.init(function onCompleted(){
+        // copy projection matrix to camera
+        camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
+    })
+
+    // update artoolkit on every frame
+    onRenderFcts.push(function(){
+        if( arToolkitSource.ready === false )	return
+
+        arToolkitContext.update( arToolkitSource.domElement )
+
+        // update scene.visible if the marker is seen
+        scene.visible = camera.visible
+
+    })
+    // init controls for camera
+    var markerControls = new THREEx.ArMarkerControls(arToolkitContext,camera, {
+        type : 'pattern',
+        patternUrl : 'arcode/marker89.td',
+        // patternUrl : THREEx.ArToolkitContext.baseURL + '../data/data/patt.kanji',
+        // as we controls the camera, set changeMatrixMode: 'cameraTransformMatrix'
+        changeMatrixMode: 'cameraTransformMatrix'
+    })
+        scene.visible = false;
+//    scene.visible = false;
+
+    onRenderFcts.push(function(delta){
+//            if(obj)
+//			{
+//			    obj.rotation.y=+1;
+//			}
+    });
+
+
+    //render the whole thing on the page
+
+    // render the scene
+    onRenderFcts.push(function(){
+        renderer.render( scene, camera );
+    });
+
+    // run the rendering loop
+    var lastTimeMsec= null
+    requestAnimationFrame(function animate(nowMsec){
+        // keep looping
+        requestAnimationFrame( animate );
+//        stats.update();
+        // measure time
+        lastTimeMsec	= lastTimeMsec || nowMsec-1000/60
+        var deltaMsec	= Math.min(200, nowMsec - lastTimeMsec)
+        lastTimeMsec	= nowMsec
+        // call each update function
+        onRenderFcts.forEach(
+            function(onRenderFct){
+            onRenderFct(deltaMsec/1000, nowMsec/1000)
+        })
+    })
+
+
+
+
+
+
+        var onProgress = function ( xhr ) {
+
+            if ( xhr.lengthComputable ) {
+
+                var percentComplete = xhr.loaded / xhr.total * 100;
+
+                console.log( Math.round(percentComplete, 2) + '% downloaded' );
+
+            }
+
+        };
+
+
+
+        var onError = function ( xhr ) { };
+
+
+
+//        THREE.Loader.Handlers.add( /\.dds$/i, new THREE.DDSLoader() );
+
+
+
+        var mtlLoader = new THREE.MTLLoader();
+
+        mtlLoader.setPath( 'obj/' );
+
+        mtlLoader.load( 'jj.mtl', function( materials ) {
+
+
+            materials.preload();
+
+            var objLoader = new THREE.OBJLoader();
+
+            objLoader.setMaterials( materials );
+
+            objLoader.setPath( 'obj/' );
+
+            objLoader.load( 'jj.obj', function ( object ) {
+//                object.position.y = - 95;
+                obj=object;
+                scene.add( object );
+                object.position.set(0,0,0);
+                object.scale.set(0.001,0.001,0.001);
+                var axes=new THREE.AxisHelper(10);
+                scene.add(axes);
+            }, onProgress, onError );
+
+
+
+        });
+
+
+</script></body>
