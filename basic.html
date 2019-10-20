@@ -158,10 +158,6 @@
     })
 
 
-
-
-
-
         var onProgress = function ( xhr ) {
 
             if ( xhr.lengthComputable ) {
@@ -178,18 +174,11 @@
 
         var onError = function ( xhr ) { };
 
-
-
-//        THREE.Loader.Handlers.add( /\.dds$/i, new THREE.DDSLoader() );
-
-
-
         var mtlLoader = new THREE.MTLLoader();
 
         mtlLoader.setPath( 'obj/' );
 
         mtlLoader.load( 'jj.mtl', function( materials ) {
-
 
             materials.preload();
 
@@ -200,7 +189,7 @@
             objLoader.setPath( 'obj/' );
 
             objLoader.load( 'jj.obj', function ( object ) {
-//                object.position.y = - 95;
+
                 obj=object;
                 scene.add( object );
                 object.position.set(0,0,0);
@@ -208,8 +197,6 @@
                 var axes=new THREE.AxisHelper(10);
                 scene.add(axes);
             }, onProgress, onError );
-
-
 
         });
 
